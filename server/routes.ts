@@ -24,9 +24,13 @@ interface DexScreenerToken {
   pairCreatedAt: number;
 }
 
+interface AIxBlockResponse {
+  analysis: string;
+  recommendations?: string[];
+}
+
 async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
   try {
-    // Use the search endpoint with required parameters
     const res = await fetch(
       "https://api.dexscreener.com/latest/dex/search?q=eth",
       {
@@ -52,23 +56,19 @@ async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
 
     let pairs = data.pairs as DexScreenerToken[];
 
-    // Filter out pairs with low liquidity (< $10,000)
     pairs = pairs.filter((pair) => {
       const liquidityUsd = pair.liquidity?.usd || 0;
       return liquidityUsd >= 10000;
     });
 
-    // Sort by 24h price change
     pairs.sort((a, b) => {
       const changeA = a.priceChange?.h24 || 0;
       const changeB = b.priceChange?.h24 || 0;
       return type === "gainers" ? changeB - changeA : changeA - changeB;
     });
 
-    // Calculate token age in days
     const now = Date.now();
 
-    // Take top N results and format them
     return pairs.slice(0, limit).map((pair) => {
       const ageInDays = Math.floor(
         (now - (pair.pairCreatedAt || now)) / (1000 * 60 * 60 * 24),
@@ -79,7 +79,7 @@ async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
         price: `$${parseFloat(pair.priceUsd).toFixed(6)}`,
         age: ageInDays > 0 ? `${ageInDays}d` : "New",
         liquidity: `$${(pair.liquidity?.usd / 1000000).toFixed(2)}M`,
-        marketCap: `$${((pair.liquidity?.usd * 2) / 1000000).toFixed(2)}M`, // Estimated MCAP
+        marketCap: `$${((pair.liquidity?.usd * 2) / 1000000).toFixed(2)}M`,
         volume24h: `$${(pair.volume?.h24 / 1000000).toFixed(2)}M`,
         priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`,
       };
@@ -90,43 +90,94 @@ async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
   }
 }
 
+async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
+  try {
+    const threadId = Math.random().toString(36).substring(7);
+    const endpoint = `https://multiagent.aixblock.io/api/v1/execute/result/67c2c1f12d19ffc0bf96bbb1?thread_id=${threadId}`;
+
+    const payload = {
+      token_name: `${token.baseToken.name} (${token.baseToken.symbol})`,
+      market_cap: token.marketCap ? token.marketCap.toString() : "Unknown",
+      trade_volume_24h: token.volume?.h24?.toString() || "Unknown",
+      price_trends: `${token.priceChange?.h24 > 0 ? "Upward" : "Downward"} trend with ${Math.abs(token.priceChange?.h24 || 0)}% change in 24h`,
+      wallet_distribution: "Data not available",
+      security_measures: "Standard token security features",
+      webhook: "https://your-webhook-endpoint.com/aixblock-callback"
+    };
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      throw new Error(`AIxBlock API error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    return {
+      text: `Analysis for ${token.baseToken.symbol}:\n${data.analysis || 'Analysis not available'}`,
+      tokenData: {
+        price: token.priceUsd,
+        priceChange24h: `${token.priceChange?.h24?.toFixed(2)}%`,
+        marketCap: token.marketCap?.toString() || 'Unknown',
+        volume24h: token.volume?.h24?.toString() || 'Unknown',
+        liquidity: token.liquidity?.usd?.toString() || 'Unknown'
+      }
+    };
+  } catch (error) {
+    console.error('Error analyzing token with AIxBlock:', error);
+    throw error;
+  }
+}
+
+let lastFetchedPairs: DexScreenerToken[] | undefined; // Add global variable
+
 async function queryCryptoGuardians(query: string) {
   try {
-    // Check if query is about top gainers/losers
+    const tokenNumberMatch = query.match(/tell me more about (?:number |#)?(\d+)/i);
+
+    if (tokenNumberMatch) {
+      const tokenIndex = parseInt(tokenNumberMatch[1]) - 1;
+      const pairs = lastFetchedPairs || [];
+
+      if (tokenIndex >= 0 && tokenIndex < pairs.length) {
+        const token = pairs[tokenIndex];
+        return await analyzeTokenWithAIxBlock(token);
+      } else {
+        return {
+          text: "Sorry, I couldn't find that token in the list. Please make sure to reference a valid token number from the displayed list."
+        };
+      }
+    }
+
     const isGainersQuery = /top.*gain|best.*perform|highest.*gain/i.test(query);
     const isLosersQuery = /top.*los|worst.*perform|biggest.*drop/i.test(query);
 
     if (isGainersQuery || isLosersQuery) {
       const type = isGainersQuery ? "gainers" : "losers";
       const tokens = await fetchTopTokens(type);
-
+      lastFetchedPairs = tokens;
       return {
         text: `Here are the top 10 ${type} in the last 24 hours:`,
-        tokenList: tokens,
+        tokenList: tokens
       };
     }
 
-    // Default response for other queries
     return {
-      text: `Analysis for your query: "${query}"`,
-      tokenData: {
-        price: "$0.12",
-        priceChange24h: "-2.5%",
-        marketCap: "$1.2M",
-        volume24h: "$50K",
-        liquidity: "$100K",
-      },
-      riskLevel: "medium",
-      riskFactors: ["Low liquidity pool", "High price volatility"],
+      text: `I'm not sure how to analyze that query. Try asking about top gainers/losers or specific tokens from the list.`
     };
   } catch (error) {
-    console.error("Error in queryCryptoGuardians:", error);
+    console.error('Error in queryCryptoGuardians:', error);
     throw error;
   }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Chat endpoint
   app.post("/api/chat", async (req, res) => {
     const schema = z.object({
       query: z.string().min(1),
