@@ -48,8 +48,10 @@ export interface TokenListItem {
   name: string;
   symbol: string;
   price: string;
-  priceChange24h: string;
+  age?: string;
   liquidity: string;
+  marketCap: string;
+  priceChange24h: string;
   volume24h: string;
 }
 

@@ -65,6 +65,7 @@ async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
       price: `$${parseFloat(pair.priceUsd).toFixed(6)}`,
       priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`,
       liquidity: `$${(pair.liquidity?.usd / 1000000).toFixed(2)}M`,
+      marketCap: `$${(pair.liquidity?.usd * 2 / 1000000).toFixed(2)}M`, // Estimated MCAP
       volume24h: `$${(pair.volume?.h24 / 1000000).toFixed(2)}M`,
     }));
   } catch (error) {
