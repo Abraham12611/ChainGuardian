@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import FormData from 'form-data';
 
 interface DexScreenerToken {
   chainId: string;
@@ -97,7 +98,7 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
     const threadId = Math.random().toString(36).substring(7);
     const endpoint = `https://multiagent.aixblock.io/api/v1/execute/result/67c2c1f12d19ffc0bf96bbb1?thread_id=${threadId}`;
 
-    // Create FormData object
+    // Create FormData instance
     const formData = new FormData();
     formData.append('token_name', `${token.baseToken.name} (${token.baseToken.symbol})`);
     formData.append('market_cap', token.liquidity?.usd ? `$${(token.liquidity.usd * 2 / 1000000).toFixed(2)}M` : 'Unknown');
@@ -107,9 +108,16 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
     formData.append('security_measures', 'Standard token security features');
     formData.append('webhook', 'https://your-webhook-endpoint.com/aixblock-callback');
 
+    console.log('Sending request to AIxBlock with data:', {
+      token_name: token.baseToken.name,
+      market_cap: token.liquidity?.usd,
+      trade_volume_24h: token.volume?.h24
+    });
+
     const res = await fetch(endpoint, {
       method: 'POST',
-      body: formData
+      body: formData as any,
+      headers: formData.getHeaders()
     });
 
     if (!res.ok) {
@@ -118,7 +126,7 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
       throw new Error(`AIxBlock API error: ${res.status} - ${errorText}`);
     }
 
-    const data = await res.json();
+    const data = await res.json() as AIxBlockResponse;
     console.log('AIxBlock API success response:', JSON.stringify(data, null, 2));
 
     return {
@@ -135,7 +143,7 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
     };
   } catch (error) {
     console.error('Error analyzing token with AIxBlock:', error);
-    throw error;
+    throw new Error('Failed to analyze token with AIxBlock. Please try again.');
   }
 }
 
@@ -147,11 +155,11 @@ async function queryCryptoGuardians(query: string) {
 
     if (tokenNumberMatch) {
       const tokenIndex = parseInt(tokenNumberMatch[1]) - 1;
-      const pairs = lastFetchedPairs || [];
+      const pairs = lastFetchedPairs;
 
-      if (tokenIndex >= 0 && tokenIndex < pairs.length) {
-        const token = pairs[tokenIndex];
-        return await analyzeTokenWithAIxBlock(token);
+      if (pairs && tokenIndex >= 0 && tokenIndex < pairs.length) {
+        console.log(`Analyzing token at index ${tokenIndex}:`, pairs[tokenIndex]);
+        return await analyzeTokenWithAIxBlock(pairs[tokenIndex]);
       } else {
         return {
           text: "Sorry, I couldn't find that token in the list. Please make sure to reference a valid token number from the displayed list."
