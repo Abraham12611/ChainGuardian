@@ -27,21 +27,11 @@ interface DexScreenerToken {
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
     // Use the search endpoint with BSC chain
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search', {
-      method: 'POST',
+    const res = await fetch('https://api.dexscreener.com/latest/dex/search?chain=bsc', {
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
         'User-Agent': 'CryptoGuardians/1.0'
-      },
-      body: JSON.stringify({
-        q: '', // Empty query to get all tokens
-        filter: {
-          liquidity: {
-            min: 10000 // Min $10k liquidity
-          }
-        }
-      })
+      }
     });
 
     if (!res.ok) {
@@ -58,6 +48,12 @@ async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
     }
 
     let pairs = data.pairs as DexScreenerToken[];
+
+    // Filter out pairs with low liquidity (< $10,000)
+    pairs = pairs.filter(pair => {
+      const liquidityUsd = pair.liquidity?.usd || 0;
+      return liquidityUsd >= 10000;
+    });
 
     // Sort by 24h price change
     pairs.sort((a, b) => {
