@@ -26,18 +26,30 @@ interface DexScreenerToken {
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
     // Use the correct endpoint and add some default parameters
-    const res = await fetch('https://api.dexscreener.com/latest/dex/pairs/search?q=USDT');
-    if (!res.ok) throw new Error(`DexScreener API error: ${res.status}`);
+    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=USDT', {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!res.ok) {
+      console.error(`DexScreener API HTTP error: ${res.status}`);
+      throw new Error(`DexScreener API error: ${res.status}`);
+    }
 
     const data = await res.json();
     if (!data.pairs || !Array.isArray(data.pairs)) {
+      console.error('Invalid response format from DexScreener:', data);
       throw new Error('Invalid response format from DexScreener');
     }
 
     let pairs = data.pairs as DexScreenerToken[];
 
     // Filter out pairs with low liquidity (< $10,000)
-    pairs = pairs.filter(pair => pair.liquidity?.usd >= 10000);
+    pairs = pairs.filter(pair => {
+      const liquidityUsd = pair.liquidity?.usd || 0;
+      return liquidityUsd >= 10000;
+    });
 
     // Sort by 24h price change
     pairs.sort((a, b) => {
@@ -46,7 +58,7 @@ async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
       return type === 'gainers' ? changeB - changeA : changeA - changeB;
     });
 
-    // Take top N results
+    // Take top N results and format them
     return pairs.slice(0, limit).map(pair => ({
       name: pair.baseToken.name,
       symbol: pair.baseToken.symbol,
