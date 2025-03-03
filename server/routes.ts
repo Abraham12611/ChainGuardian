@@ -26,8 +26,8 @@ interface DexScreenerToken {
 
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
-    // Use the pairs/v2 endpoint
-    const res = await fetch('https://api.dexscreener.com/latest/dex/pairs/v2/all', {
+    // Use the v2 pairs endpoint with chain filter
+    const res = await fetch('https://api.dexscreener.com/latest/dex/pairs/bsc/1', {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'CryptoGuardians/1.0'
