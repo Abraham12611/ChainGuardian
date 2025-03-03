@@ -27,9 +27,10 @@ interface DexScreenerToken {
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
     // Use the correct endpoint and add some default parameters
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search', {
+    const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/trending', {
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'User-Agent': 'CryptoGuardians/1.0'
       }
     });
 
