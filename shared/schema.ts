@@ -34,7 +34,7 @@ export type User = typeof users.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
-// AI Response types
+// Single token data type
 export interface TokenData {
   price: string;
   priceChange24h: string;
@@ -43,9 +43,21 @@ export interface TokenData {
   liquidity: string;
 }
 
+// Token list item type
+export interface TokenListItem {
+  name: string;
+  symbol: string;
+  price: string;
+  priceChange24h: string;
+  liquidity: string;
+  volume24h: string;
+}
+
+// AI Response types
 export interface AIResponse {
   text: string;
   tokenData?: TokenData;
+  tokenList?: TokenListItem[];
   riskLevel?: "low" | "medium" | "high";
   riskFactors?: string[];
 }

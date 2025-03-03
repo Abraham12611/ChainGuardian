@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { type Message } from "@shared/schema";
 import TokenStats from "../token/token-stats";
+import TokenList from "../token/token-list";
 import { AlertTriangle } from "lucide-react";
 
 interface MessageBubbleProps {
@@ -9,7 +10,7 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isAI = message.sender === "ai";
-  
+
   return (
     <div className={`flex ${isAI ? "justify-start" : "justify-end"}`}>
       <div className={`
@@ -17,14 +18,14 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         ${isAI ? "bg-secondary" : "bg-primary text-primary-foreground"}
       `}>
         <div className="text-sm">{message.content}</div>
-        
+
         {isAI && message.metadata?.tokenData && (
           <div className="mt-3">
             <TokenStats 
               tokenData={message.metadata.tokenData}
               riskLevel={message.metadata.riskLevel}
             />
-            
+
             {message.metadata.riskFactors && message.metadata.riskFactors.length > 0 && (
               <div className="mt-2 text-xs">
                 <div className="flex items-center gap-1 text-destructive mb-1">
@@ -40,7 +41,13 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             )}
           </div>
         )}
-        
+
+        {isAI && message.metadata?.tokenList && (
+          <div className="mt-3">
+            <TokenList tokens={message.metadata.tokenList} />
+          </div>
+        )}
+
         <div className="text-xs text-muted-foreground mt-2">
           {format(new Date(message.timestamp), "HH:mm")}
         </div>

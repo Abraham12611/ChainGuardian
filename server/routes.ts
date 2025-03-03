@@ -3,32 +3,94 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 
-async function queryCryptoGuardians(query: string) {
-  // Mock AI response for now - would be replaced with actual API call
-  return {
-    text: `Analysis for your query: "${query}"`,
-    tokenData: {
-      price: "$0.12",
-      priceChange24h: "-2.5%",
-      marketCap: "$1.2M",
-      volume24h: "$50K",
-      liquidity: "$100K"
-    },
-    riskLevel: "medium",
-    riskFactors: [
-      "Low liquidity pool",
-      "High price volatility"
-    ]
+interface DexScreenerToken {
+  chainId: string;
+  pairAddress: string;
+  baseToken: {
+    address: string;
+    name: string;
+    symbol: string;
+  };
+  priceUsd: string;
+  priceChange: {
+    h24: number;
+  };
+  liquidity: {
+    usd: number;
+  };
+  volume: {
+    h24: number;
   };
 }
 
-async function fetchDexScreenerData(tokenAddress: string) {
+async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
-    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
-    if (!res.ok) throw new Error("Failed to fetch token data");
-    return await res.json();
+    // Using the search endpoint as it provides comprehensive token data
+    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=');
+    if (!res.ok) throw new Error(`DexScreener API error: ${res.status}`);
+
+    const data = await res.json();
+    let pairs = data.pairs as DexScreenerToken[];
+
+    // Filter out pairs with low liquidity (< $10,000)
+    pairs = pairs.filter(pair => pair.liquidity?.usd >= 10000);
+
+    // Sort by 24h price change
+    pairs.sort((a, b) => {
+      const changeA = a.priceChange?.h24 || 0;
+      const changeB = b.priceChange?.h24 || 0;
+      return type === 'gainers' ? changeB - changeA : changeA - changeB;
+    });
+
+    // Take top N results
+    return pairs.slice(0, limit).map(pair => ({
+      name: pair.baseToken.name,
+      symbol: pair.baseToken.symbol,
+      price: `$${parseFloat(pair.priceUsd).toFixed(6)}`,
+      priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`,
+      liquidity: `$${(pair.liquidity?.usd / 1000000).toFixed(2)}M`,
+      volume24h: `$${(pair.volume?.h24 / 1000000).toFixed(2)}M`,
+    }));
   } catch (error) {
-    console.error("DexScreener API error:", error);
+    console.error('Error fetching top tokens:', error);
+    throw error;
+  }
+}
+
+async function queryCryptoGuardians(query: string) {
+  try {
+    // Check if query is about top gainers/losers
+    const isGainersQuery = /top.*gain|best.*perform|highest.*gain/i.test(query);
+    const isLosersQuery = /top.*los|worst.*perform|biggest.*drop/i.test(query);
+
+    if (isGainersQuery || isLosersQuery) {
+      const type = isGainersQuery ? 'gainers' : 'losers';
+      const tokens = await fetchTopTokens(type);
+
+      return {
+        text: `Here are the top 10 ${type} in the last 24 hours:`,
+        tokenList: tokens,
+      };
+    }
+
+    // Default response for other queries
+    return {
+      text: `Analysis for your query: "${query}"`,
+      tokenData: {
+        price: "$0.12",
+        priceChange24h: "-2.5%",
+        marketCap: "$1.2M",
+        volume24h: "$50K",
+        liquidity: "$100K"
+      },
+      riskLevel: "medium",
+      riskFactors: [
+        "Low liquidity pool",
+        "High price volatility"
+      ]
+    };
+  } catch (error) {
+    console.error('Error in queryCryptoGuardians:', error);
     throw error;
   }
 }
@@ -45,7 +107,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiResponse = await queryCryptoGuardians(query);
       res.json(aiResponse);
     } catch (error) {
-      res.status(400).json({ message: "Invalid request" });
+      console.error('API Error:', error);
+      res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Invalid request" 
+      });
     }
   });
 
