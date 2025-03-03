@@ -21,6 +21,7 @@ interface DexScreenerToken {
   volume: {
     h24: number;
   };
+  pairCreatedAt: number;
 }
 
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
@@ -58,16 +59,23 @@ async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
       return type === 'gainers' ? changeB - changeA : changeA - changeB;
     });
 
+    // Calculate token age in days
+    const now = Date.now();
+
     // Take top N results and format them
-    return pairs.slice(0, limit).map(pair => ({
-      name: pair.baseToken.name,
-      symbol: pair.baseToken.symbol,
-      price: `$${parseFloat(pair.priceUsd).toFixed(6)}`,
-      priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`,
-      liquidity: `$${(pair.liquidity?.usd / 1000000).toFixed(2)}M`,
-      marketCap: `$${(pair.liquidity?.usd * 2 / 1000000).toFixed(2)}M`, // Estimated MCAP
-      volume24h: `$${(pair.volume?.h24 / 1000000).toFixed(2)}M`,
-    }));
+    return pairs.slice(0, limit).map(pair => {
+      const ageInDays = Math.floor((now - (pair.pairCreatedAt || now)) / (1000 * 60 * 60 * 24));
+      return {
+        name: pair.baseToken.name,
+        symbol: pair.baseToken.symbol,
+        price: `$${parseFloat(pair.priceUsd).toFixed(6)}`,
+        age: ageInDays > 0 ? `${ageInDays}d` : 'New',
+        liquidity: `$${(pair.liquidity?.usd / 1000000).toFixed(2)}M`,
+        marketCap: `$${(pair.liquidity?.usd * 2 / 1000000).toFixed(2)}M`, // Estimated MCAP
+        volume24h: `$${(pair.volume?.h24 / 1000000).toFixed(2)}M`,
+        priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`
+      };
+    });
   } catch (error) {
     console.error('Error fetching top tokens:', error);
     throw error;

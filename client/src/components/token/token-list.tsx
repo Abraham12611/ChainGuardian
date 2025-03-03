@@ -8,9 +8,9 @@ interface TokenListProps {
 
 export default function TokenList({ tokens }: TokenListProps) {
   return (
-    <Card className="p-4 bg-card/50">
+    <Card className="p-3 bg-background/50">
       {/* Header */}
-      <div className="grid grid-cols-6 gap-4 text-sm text-muted-foreground mb-2 px-2">
+      <div className="grid grid-cols-[2fr,1fr,1fr,1fr,1fr,1fr] gap-4 mb-4 text-xs text-muted-foreground">
         <div>Name</div>
         <div className="text-right">Price</div>
         <div className="text-right">Age</div>
@@ -25,10 +25,12 @@ export default function TokenList({ tokens }: TokenListProps) {
           const priceChange = parseFloat(token.priceChange24h);
 
           return (
-            <div key={index} className="grid grid-cols-6 gap-4 p-2 hover:bg-accent/50 rounded-md text-sm">
-              <div className="flex items-center">
+            <div key={index} 
+              className="grid grid-cols-[2fr,1fr,1fr,1fr,1fr,1fr] gap-4 py-2 text-xs hover:bg-accent/50 rounded-sm"
+            >
+              <div className="flex items-center space-x-2">
                 <span className="font-medium">{token.symbol}</span>
-                <span className="text-muted-foreground ml-2 truncate">{token.name}</span>
+                <span className="text-muted-foreground truncate">{token.name}</span>
               </div>
 
               <div className="text-right font-mono">
@@ -36,7 +38,7 @@ export default function TokenList({ tokens }: TokenListProps) {
               </div>
 
               <div className="text-right text-muted-foreground">
-                {token.age || 'N/A'}
+                {token.age}
               </div>
 
               <div className="text-right font-mono">
@@ -51,8 +53,8 @@ export default function TokenList({ tokens }: TokenListProps) {
                 priceChange >= 0 ? "text-green-500" : "text-red-500"
               }`}>
                 {priceChange >= 0 ? 
-                  <TrendingUp className="h-4 w-4" /> : 
-                  <TrendingDown className="h-4 w-4" />
+                  <TrendingUp className="h-3 w-3" /> : 
+                  <TrendingDown className="h-3 w-3" />
                 }
                 {token.priceChange24h}
               </div>
