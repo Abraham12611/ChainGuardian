@@ -99,23 +99,24 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
   try {
     console.log(`Analyzing token:`, token);
 
-    const analysis = `### Comprehensive Analysis of ${token.baseToken.symbol}
+    const analysis = `Comprehensive Analysis of ${token.baseToken.symbol}
 
-**Market Overview**  
-The token currently has a market capitalization of **$${((token.liquidity?.usd * 2) / 1000000).toFixed(2)}M**, positioning it in the ${token.liquidity?.usd > 1000000 ? "mid" : "small"}-cap segment of the cryptocurrency market. The 24-hour trading volume of **$${(token.volume?.h24 / 1000000).toFixed(2)}M** indicates ${token.volume?.h24 > 1000000 ? "strong" : "moderate"} market activity.
+Market Overview
+The token currently has a market capitalization of $${((token.liquidity?.usd * 2) / 1000000).toFixed(2)}M, positioning it in the ${token.liquidity?.usd > 1000000 ? "mid" : "small"}-cap segment of the cryptocurrency market. The 24-hour trading volume of $${(token.volume?.h24 / 1000000).toFixed(2)}M indicates ${token.volume?.h24 > 1000000 ? "strong" : "moderate"} market activity.
 
-**Price Performance and Trends**  
-Price analysis shows a ${token.priceChange?.h24 >= 0 ? "positive" : "negative"} movement of **${Math.abs(token.priceChange?.h24 || 0).toFixed(2)}%** in the past 24 hours. The current price of **$${parseFloat(token.priceUsd).toFixed(6)}** suggests ${token.priceChange?.h24 >= 0 ? "growing investor confidence" : "potential profit-taking or market uncertainty"}.
+Price Performance and Trends
+Price analysis shows a ${token.priceChange?.h24 >= 0 ? "positive" : "negative"} movement of ${Math.abs(token.priceChange?.h24 || 0).toFixed(2)}% in the past 24 hours. The current price of $${parseFloat(token.priceUsd).toFixed(6)} suggests ${token.priceChange?.h24 >= 0 ? "growing investor confidence" : "potential profit-taking or market uncertainty"}.
 
-**Liquidity Analysis**  
-The token maintains a liquidity pool of **$${(token.liquidity?.usd / 1000000).toFixed(2)}M**, which ${token.liquidity?.usd >= 100000 ? "provides some stability against large price swings" : "might lead to increased volatility during large trades"}.
+Liquidity Analysis
+The token maintains a liquidity pool of $${(token.liquidity?.usd / 1000000).toFixed(2)}M, which ${token.liquidity?.usd >= 100000 ? "provides some stability against large price swings" : "might lead to increased volatility during large trades"}.
 
-**Risk Assessment**  
-${token.liquidity?.usd >= 500000 ? "Moderate" : "High"} risk profile based on:
-- Market capitalization size
-- Trading volume patterns
-- Liquidity depth
-- Price volatility metrics`;
+Risk Assessment
+Risk Level: ${token.liquidity?.usd >= 500000 ? "Moderate" : "High"}
+Based on:
+• Market capitalization size
+• Trading volume patterns
+• Liquidity depth
+• Price volatility metrics`;
 
     return {
       text: analysis,
