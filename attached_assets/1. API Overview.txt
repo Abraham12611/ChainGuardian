@@ -1,0 +1,38 @@
+1. API Overview
+Your crew functions as an API and can be accessed via two primary REST endpoints:
+1. [POST] [/api/v1/execute/result]
+Purpose: Start a crew by passing the necessary inputs along with optional callbacks. This endpoint returns a task_id for tracking execution progress.
+Security: All endpoints are protected by a token unique to your application.
+Endpoint Details
+Execute Endpoint
+This endpoint initiates a crew's execution.
+Required Parameters:
+·
+message: A dictionary containing the expected input attributes.
+crewWebhookUrl: A callback URL to receive the execution result.
+Example Request:
+﻿
+
+POST /api/v1/execute/result/07b3528b083215c02701b...
+Host: {your_base_url}
+Input type FormData
+Eg.
+"lead_name": "example_value", "lead_title": "example_value",
+"company_name": "example_value",
+"linkedin": "example_value",
+"company_size": "example_value",
+"company_revenue": "example_value",
+"webhook": "example_value"
+Webhook Response
+Once the crew execution completes, the provided webhook will receive the result of webhook depend on the output
+Example webhook Payload:
+{
+}
+"email_title": "...",
+"email_content":
+Troubleshooting
+• Invalid Token: Ensure you are using the correct Authorization token.
+⚫ Missing Inputs: Call the /inputs endpoint to verify required inputs.
+• Webhook Not Triggered: Check the availability and correctness of the webhook
+Crew may take minutes to complete their tasks: take some coffee and come back later.
+With these simple steps, your crew becomes a fully operational API within seconds. Happy integrating!

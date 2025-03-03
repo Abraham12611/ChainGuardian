@@ -27,6 +27,7 @@ export default function ChatInterface() {
         timestamp: new Date(),
         metadata: {
           tokenData: data.tokenData,
+          tokenList: data.tokenList,
           riskLevel: data.riskLevel,
           riskFactors: data.riskFactors
         }
@@ -64,7 +65,7 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-[600px]">
       <ScrollArea className="flex-1 pr-4">
-        <div className="space-y-4">
+        <div className="space-y-4 w-full">
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}

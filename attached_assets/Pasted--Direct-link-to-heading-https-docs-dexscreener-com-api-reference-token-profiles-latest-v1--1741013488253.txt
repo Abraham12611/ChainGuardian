@@ -1,0 +1,679 @@
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#token-profiles-latest-v1)    Get the latest token profiles (rate-limit 60 requests per minute)
+
+get
+
+/token-profiles/latest/v1
+
+Test it
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/token-profiles/latest/v1'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+{
+  "url": "https://example.com",
+  "chainId": "text",
+  "tokenAddress": "text",
+  "icon": "https://example.com",
+  "header": "https://example.com",
+  "description": "text",
+  "links": [\
+    {\
+      "type": "text",\
+      "label": "text",\
+      "url": "https://example.com"\
+    }\
+  ]
+}
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#token-boosts-latest-v1)    Get the latest boosted tokens (rate-limit 60 requests per minute)
+
+get
+
+/token-boosts/latest/v1
+
+Test it
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/token-boosts/latest/v1'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+{
+  "url": "https://example.com",
+  "chainId": "text",
+  "tokenAddress": "text",
+  "amount": 1,
+  "totalAmount": 1,
+  "icon": "https://example.com",
+  "header": "https://example.com",
+  "description": "text",
+  "links": [\
+    {\
+      "type": "text",\
+      "label": "text",\
+      "url": "https://example.com"\
+    }\
+  ]
+}
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#token-boosts-top-v1)    Get the tokens with most active boosts (rate-limit 60 requests per minute)
+
+get
+
+/token-boosts/top/v1
+
+Test it
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/token-boosts/top/v1'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+{
+  "url": "https://example.com",
+  "chainId": "text",
+  "tokenAddress": "text",
+  "amount": 1,
+  "totalAmount": 1,
+  "icon": "https://example.com",
+  "header": "https://example.com",
+  "description": "text",
+  "links": [\
+    {\
+      "type": "text",\
+      "label": "text",\
+      "url": "https://example.com"\
+    }\
+  ]
+}
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#orders-v1-chainid-tokenaddress)    Check orders paid for of token (rate-limit 60 requests per minute)
+
+get
+
+/orders/v1/ _{chainId}_// _{tokenAddress}_
+
+Test it
+
+Path parameters
+
+chainIdstringrequired
+
+Example: `solana`
+
+tokenAddressstringrequired
+
+Example: `A55XjvzRU4KtR3Lrys8PpLZQvPojPqvnv5bJVHMYy3Jv`
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/orders/v1/{chainId}/{tokenAddress}'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+[\
+  {\
+    "paymentTimestamp": 1,\
+    "type": "tokenProfile",\
+    "status": "processing"\
+  }\
+]
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#latest-dex-pairs-chainid-pairid)    Get one or multiple pairs by chain and pair address (rate-limit 300 requests per minute)
+
+get
+
+/latest/dex/pairs/ _{chainId}_// _{pairId}_
+
+Test it
+
+Path parameters
+
+chainIdstringrequired
+
+Example: `solana`
+
+pairIdstringrequired
+
+Example: `JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN`
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/latest/dex/pairs/{chainId}/{pairId}'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+{
+  "schemaVersion": "text",
+  "pairs": [\
+    {\
+      "chainId": "text",\
+      "dexId": "text",\
+      "url": "https://example.com",\
+      "pairAddress": "text",\
+      "priceNative": "text",\
+      "priceUsd": "text",\
+      "fdv": 1,\
+      "marketCap": 1,\
+      "pairCreatedAt": 1,\
+      "labels": [\
+        "text"\
+      ],\
+      "volume": {\
+        "ANY_ADDITIONAL_PROPERTY": 1\
+      },\
+      "priceChange": {\
+        "ANY_ADDITIONAL_PROPERTY": 1\
+      },\
+      "baseToken": {\
+        "address": "text",\
+        "name": "text",\
+        "symbol": "text"\
+      },\
+      "quoteToken": {\
+        "address": "text",\
+        "name": "text",\
+        "symbol": "text"\
+      },\
+      "liquidity": {\
+        "usd": 1,\
+        "base": 1,\
+        "quote": 1\
+      },\
+      "boosts": {\
+        "active": 1\
+      },\
+      "txns": {\
+        "ANY_ADDITIONAL_PROPERTY": {\
+          "buys": 1,\
+          "sells": 1\
+        }\
+      },\
+      "info": {\
+        "imageUrl": "https://example.com",\
+        "websites": [\
+          {\
+            "url": "https://example.com"\
+          }\
+        ],\
+        "socials": [\
+          {\
+            "platform": "text",\
+            "handle": "text"\
+          }\
+        ]\
+      }\
+    }\
+  ]
+}
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#latest-dex-search)    Search for pairs matching query (rate-limit 300 requests per minute)
+
+get
+
+/latest/dex/search
+
+Test it
+
+Query parameters
+
+qstringrequired
+
+Example: `SOL/USDC`
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/latest/dex/search?q=text'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+{
+  "schemaVersion": "text",
+  "pairs": [\
+    {\
+      "chainId": "text",\
+      "dexId": "text",\
+      "url": "https://example.com",\
+      "pairAddress": "text",\
+      "priceNative": "text",\
+      "priceUsd": "text",\
+      "fdv": 1,\
+      "marketCap": 1,\
+      "pairCreatedAt": 1,\
+      "labels": [\
+        "text"\
+      ],\
+      "volume": {\
+        "ANY_ADDITIONAL_PROPERTY": 1\
+      },\
+      "priceChange": {\
+        "ANY_ADDITIONAL_PROPERTY": 1\
+      },\
+      "baseToken": {\
+        "address": "text",\
+        "name": "text",\
+        "symbol": "text"\
+      },\
+      "quoteToken": {\
+        "address": "text",\
+        "name": "text",\
+        "symbol": "text"\
+      },\
+      "liquidity": {\
+        "usd": 1,\
+        "base": 1,\
+        "quote": 1\
+      },\
+      "boosts": {\
+        "active": 1\
+      },\
+      "txns": {\
+        "ANY_ADDITIONAL_PROPERTY": {\
+          "buys": 1,\
+          "sells": 1\
+        }\
+      },\
+      "info": {\
+        "imageUrl": "https://example.com",\
+        "websites": [\
+          {\
+            "url": "https://example.com"\
+          }\
+        ],\
+        "socials": [\
+          {\
+            "platform": "text",\
+            "handle": "text"\
+          }\
+        ]\
+      }\
+    }\
+  ]
+}
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#token-pairs-v1-chainid-tokenaddress)    Get the pools of a given token address (rate-limit 300 requests per minute)
+
+get
+
+/token-pairs/v1/ _{chainId}_// _{tokenAddress}_
+
+Test it
+
+Path parameters
+
+chainIdstringrequired
+
+Example: `solana`
+
+tokenAddressstringrequired
+
+A token addresses
+
+Example: `JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN`
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/token-pairs/v1/{chainId}/{tokenAddress}'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+[\
+  {\
+    "chainId": "text",\
+    "dexId": "text",\
+    "url": "https://example.com",\
+    "pairAddress": "text",\
+    "priceNative": "text",\
+    "priceUsd": "text",\
+    "fdv": 1,\
+    "marketCap": 1,\
+    "pairCreatedAt": 1,\
+    "labels": [\
+      "text"\
+    ],\
+    "volume": {\
+      "ANY_ADDITIONAL_PROPERTY": 1\
+    },\
+    "priceChange": {\
+      "ANY_ADDITIONAL_PROPERTY": 1\
+    },\
+    "baseToken": {\
+      "address": "text",\
+      "name": "text",\
+      "symbol": "text"\
+    },\
+    "quoteToken": {\
+      "address": "text",\
+      "name": "text",\
+      "symbol": "text"\
+    },\
+    "liquidity": {\
+      "usd": 1,\
+      "base": 1,\
+      "quote": 1\
+    },\
+    "boosts": {\
+      "active": 1\
+    },\
+    "txns": {\
+      "ANY_ADDITIONAL_PROPERTY": {\
+        "buys": 1,\
+        "sells": 1\
+      }\
+    },\
+    "info": {\
+      "imageUrl": "https://example.com",\
+      "websites": [\
+        {\
+          "url": "https://example.com"\
+        }\
+      ],\
+      "socials": [\
+        {\
+          "platform": "text",\
+          "handle": "text"\
+        }\
+      ]\
+    }\
+  }\
+]
+```
+
+Ok
+
+### [Direct link to heading](https://docs.dexscreener.com/api/reference\#tokens-v1-chainid-tokenaddresses)    Get one or multiple pairs by token address (rate-limit 300 requests per minute)
+
+get
+
+/tokens/v1/ _{chainId}_// _{tokenAddresses}_
+
+Test it
+
+Path parameters
+
+chainIdstringrequired
+
+Example: `solana`
+
+tokenAddressesstringrequired
+
+One or multiple, comma-separated token addresses (up to 30 addresses)
+
+Example: `So11111111111111111111111111111111111111112,EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+
+Responses
+
+200
+
+Ok
+
+application/json
+
+cURL
+
+JavaScript
+
+Python
+
+HTTP
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+curl -L \
+  --url 'https://api.dexscreener.com/tokens/v1/{chainId}/{tokenAddresses}'
+```
+
+200
+
+Copy
+
+```inline-grid min-w-full grid-cols-[auto_1fr] p-2 [count-reset:line]
+[\
+  {\
+    "chainId": "text",\
+    "dexId": "text",\
+    "url": "https://example.com",\
+    "pairAddress": "text",\
+    "priceNative": "text",\
+    "priceUsd": "text",\
+    "fdv": 1,\
+    "marketCap": 1,\
+    "pairCreatedAt": 1,\
+    "labels": [\
+      "text"\
+    ],\
+    "volume": {\
+      "ANY_ADDITIONAL_PROPERTY": 1\
+    },\
+    "priceChange": {\
+      "ANY_ADDITIONAL_PROPERTY": 1\
+    },\
+    "baseToken": {\
+      "address": "text",\
+      "name": "text",\
+      "symbol": "text"\
+    },\
+    "quoteToken": {\
+      "address": "text",\
+      "name": "text",\
+      "symbol": "text"\
+    },\
+    "liquidity": {\
+      "usd": 1,\
+      "base": 1,\
+      "quote": 1\
+    },\
+    "boosts": {\
+      "active": 1\
+    },\
+    "txns": {\
+      "ANY_ADDITIONAL_PROPERTY": {\
+        "buys": 1,\
+        "sells": 1\
+      }\
+    },\
+    "info": {\
+      "imageUrl": "https://example.com",\
+      "websites": [\
+        {\
+          "url": "https://example.com"\
+        }\
+      ],\
+      "socials": [\
+        {\
+          "platform": "text",\
+          "handle": "text"\
+        }\
+      ]\
+    }\
+  }\
+]
+```
+
+Ok
+
+Last updated 1 month ago
+
+* * *
+
+This site uses cookies to deliver its service and to analyse traffic. By browsing this site, you accept the [privacy policy](https://policies.gitbook.com/privacy/cookies).
+
+AcceptReject
