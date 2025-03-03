@@ -70,11 +70,13 @@ async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
       return type === "gainers" ? changeB - changeA : changeA - changeB;
     });
 
-    const now = Date.now();
+    // Store the original pairs data
+    lastFetchedPairs = pairs.slice(0, limit);
 
-    return pairs.slice(0, limit).map((pair) => {
+    // Return formatted data for display
+    return lastFetchedPairs.map((pair) => {
       const ageInDays = Math.floor(
-        (now - (pair.pairCreatedAt || now)) / (1000 * 60 * 60 * 24),
+        (Date.now() - (pair.pairCreatedAt || Date.now())) / (1000 * 60 * 60 * 24),
       );
       return {
         name: pair.baseToken.name,
@@ -97,11 +99,10 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
   try {
     console.log(`Analyzing token:`, token);
 
-    // Create a mock analysis response similar to the example provided
     const analysis = `### Comprehensive Analysis of ${token.baseToken.symbol}
 
 **Market Overview**  
-The token currently has a market capitalization of **$${((token.liquidity?.usd * 2) / 1000000).toFixed(2)}M**, positioning it in the small-cap segment of the cryptocurrency market. The 24-hour trading volume of **$${(token.volume?.h24 / 1000000).toFixed(2)}M** indicates moderate market activity.
+The token currently has a market capitalization of **$${((token.liquidity?.usd * 2) / 1000000).toFixed(2)}M**, positioning it in the ${token.liquidity?.usd > 1000000 ? "mid" : "small"}-cap segment of the cryptocurrency market. The 24-hour trading volume of **$${(token.volume?.h24 / 1000000).toFixed(2)}M** indicates ${token.volume?.h24 > 1000000 ? "strong" : "moderate"} market activity.
 
 **Price Performance and Trends**  
 Price analysis shows a ${token.priceChange?.h24 >= 0 ? "positive" : "negative"} movement of **${Math.abs(token.priceChange?.h24 || 0).toFixed(2)}%** in the past 24 hours. The current price of **$${parseFloat(token.priceUsd).toFixed(6)}** suggests ${token.priceChange?.h24 >= 0 ? "growing investor confidence" : "potential profit-taking or market uncertainty"}.
@@ -164,7 +165,6 @@ async function queryCryptoGuardians(query: string) {
     if (isGainersQuery || isLosersQuery) {
       const type = isGainersQuery ? "gainers" : "losers";
       const tokens = await fetchTopTokens(type);
-      lastFetchedPairs = tokens;
       return {
         text: `Here are the top 10 ${type} in the last 24 hours:`,
         tokenList: tokens
