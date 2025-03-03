@@ -26,7 +26,7 @@ interface DexScreenerToken {
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
     // Use the correct endpoint and add some default parameters
-    const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/search?q=USDT');
+    const res = await fetch('https://api.dexscreener.com/latest/dex/pairs/search?q=USDT');
     if (!res.ok) throw new Error(`DexScreener API error: ${res.status}`);
 
     const data = await res.json();
