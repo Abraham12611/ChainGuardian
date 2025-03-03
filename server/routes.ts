@@ -25,11 +25,15 @@ interface DexScreenerToken {
 
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
-    // Using the search endpoint as it provides comprehensive token data
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=');
+    // Use the correct endpoint and add some default parameters
+    const res = await fetch('https://api.dexscreener.com/latest/dex/tokens/search?q=USDT');
     if (!res.ok) throw new Error(`DexScreener API error: ${res.status}`);
 
     const data = await res.json();
+    if (!data.pairs || !Array.isArray(data.pairs)) {
+      throw new Error('Invalid response format from DexScreener');
+    }
+
     let pairs = data.pairs as DexScreenerToken[];
 
     // Filter out pairs with low liquidity (< $10,000)
