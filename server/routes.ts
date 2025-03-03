@@ -24,15 +24,18 @@ interface DexScreenerToken {
   pairCreatedAt: number;
 }
 
-async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
+async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
   try {
     // Use the search endpoint with required parameters
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=eth', {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'CryptoGuardians/1.0'
-      }
-    });
+    const res = await fetch(
+      "https://api.dexscreener.com/latest/dex/search?q=eth",
+      {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "CryptoGuardians/1.0",
+        },
+      },
+    );
 
     if (!res.ok) {
       console.error(`DexScreener API HTTP error: ${res.status}`);
@@ -40,17 +43,17 @@ async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
     }
 
     const data = await res.json();
-    console.log('DexScreener API response:', JSON.stringify(data, null, 2));
+    console.log("DexScreener API response:", JSON.stringify(data, null, 2));
 
     if (!data.pairs || !Array.isArray(data.pairs)) {
-      console.error('Invalid response format from DexScreener:', data);
-      throw new Error('Invalid response format from DexScreener');
+      console.error("Invalid response format from DexScreener:", data);
+      throw new Error("Invalid response format from DexScreener");
     }
 
     let pairs = data.pairs as DexScreenerToken[];
 
     // Filter out pairs with low liquidity (< $10,000)
-    pairs = pairs.filter(pair => {
+    pairs = pairs.filter((pair) => {
       const liquidityUsd = pair.liquidity?.usd || 0;
       return liquidityUsd >= 10000;
     });
@@ -59,28 +62,30 @@ async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
     pairs.sort((a, b) => {
       const changeA = a.priceChange?.h24 || 0;
       const changeB = b.priceChange?.h24 || 0;
-      return type === 'gainers' ? changeB - changeA : changeA - changeB;
+      return type === "gainers" ? changeB - changeA : changeA - changeB;
     });
 
     // Calculate token age in days
     const now = Date.now();
 
     // Take top N results and format them
-    return pairs.slice(0, limit).map(pair => {
-      const ageInDays = Math.floor((now - (pair.pairCreatedAt || now)) / (1000 * 60 * 60 * 24));
+    return pairs.slice(0, limit).map((pair) => {
+      const ageInDays = Math.floor(
+        (now - (pair.pairCreatedAt || now)) / (1000 * 60 * 60 * 24),
+      );
       return {
         name: pair.baseToken.name,
         symbol: pair.baseToken.symbol,
         price: `$${parseFloat(pair.priceUsd).toFixed(6)}`,
-        age: ageInDays > 0 ? `${ageInDays}d` : 'New',
+        age: ageInDays > 0 ? `${ageInDays}d` : "New",
         liquidity: `$${(pair.liquidity?.usd / 1000000).toFixed(2)}M`,
-        marketCap: `$${(pair.liquidity?.usd * 2 / 1000000).toFixed(2)}M`, // Estimated MCAP
+        marketCap: `$${((pair.liquidity?.usd * 2) / 1000000).toFixed(2)}M`, // Estimated MCAP
         volume24h: `$${(pair.volume?.h24 / 1000000).toFixed(2)}M`,
-        priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`
+        priceChange24h: `${pair.priceChange?.h24?.toFixed(2)}%`,
       };
     });
   } catch (error) {
-    console.error('Error fetching top tokens:', error);
+    console.error("Error fetching top tokens:", error);
     throw error;
   }
 }
@@ -92,7 +97,7 @@ async function queryCryptoGuardians(query: string) {
     const isLosersQuery = /top.*los|worst.*perform|biggest.*drop/i.test(query);
 
     if (isGainersQuery || isLosersQuery) {
-      const type = isGainersQuery ? 'gainers' : 'losers';
+      const type = isGainersQuery ? "gainers" : "losers";
       const tokens = await fetchTopTokens(type);
 
       return {
@@ -109,16 +114,13 @@ async function queryCryptoGuardians(query: string) {
         priceChange24h: "-2.5%",
         marketCap: "$1.2M",
         volume24h: "$50K",
-        liquidity: "$100K"
+        liquidity: "$100K",
       },
       riskLevel: "medium",
-      riskFactors: [
-        "Low liquidity pool",
-        "High price volatility"
-      ]
+      riskFactors: ["Low liquidity pool", "High price volatility"],
     };
   } catch (error) {
-    console.error('Error in queryCryptoGuardians:', error);
+    console.error("Error in queryCryptoGuardians:", error);
     throw error;
   }
 }
@@ -127,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat endpoint
   app.post("/api/chat", async (req, res) => {
     const schema = z.object({
-      query: z.string().min(1)
+      query: z.string().min(1),
     });
 
     try {
@@ -135,9 +137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiResponse = await queryCryptoGuardians(query);
       res.json(aiResponse);
     } catch (error) {
-      console.error('API Error:', error);
-      res.status(400).json({ 
-        message: error instanceof Error ? error.message : "Invalid request" 
+      console.error("API Error:", error);
+      res.status(400).json({
+        message: error instanceof Error ? error.message : "Invalid request",
       });
     }
   });
