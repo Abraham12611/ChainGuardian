@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { type Message } from "@shared/schema";
+import { type Message, type TokenData, type TokenListItem } from "@shared/schema";
 import TokenStats from "../token/token-stats";
 import TokenList from "../token/token-list";
 import { AlertTriangle } from "lucide-react";
@@ -8,8 +8,16 @@ interface MessageBubbleProps {
   message: Message;
 }
 
+interface MessageMetadata {
+  tokenData?: TokenData;
+  tokenList?: TokenListItem[];
+  riskLevel?: "low" | "medium" | "high";
+  riskFactors?: string[];
+}
+
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isAI = message.sender === "ai";
+  const metadata = message.metadata as MessageMetadata;
 
   return (
     <div className={`flex ${isAI ? "justify-start" : "justify-end"}`}>
@@ -19,22 +27,22 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       `}>
         <div className="text-sm">{message.content}</div>
 
-        {isAI && message.metadata?.tokenData && (
+        {isAI && metadata?.tokenData && (
           <div className="mt-3">
             <TokenStats 
-              tokenData={message.metadata.tokenData}
-              riskLevel={message.metadata.riskLevel}
+              tokenData={metadata.tokenData}
+              riskLevel={metadata.riskLevel}
             />
 
-            {message.metadata.riskFactors && message.metadata.riskFactors.length > 0 && (
+            {metadata.riskFactors && metadata.riskFactors.length > 0 && (
               <div className="mt-2 text-xs">
                 <div className="flex items-center gap-1 text-destructive mb-1">
                   <AlertTriangle className="h-4 w-4" />
                   Risk Factors:
                 </div>
                 <ul className="list-disc list-inside space-y-1">
-                  {message.metadata.riskFactors.map((factor, i) => (
-                    <li key={i}>{factor}</li>
+                  {metadata.riskFactors.map((factor, index) => (
+                    <li key={index}>{factor}</li>
                   ))}
                 </ul>
               </div>
@@ -42,9 +50,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-        {isAI && message.metadata?.tokenList && (
+        {isAI && metadata?.tokenList && (
           <div className="mt-3">
-            <TokenList tokens={message.metadata.tokenList} />
+            <TokenList tokens={metadata.tokenList} />
           </div>
         )}
 
