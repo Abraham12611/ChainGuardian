@@ -26,8 +26,8 @@ interface DexScreenerToken {
 
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
-    // Use the search endpoint with BSC chain
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search?chain=bsc', {
+    // Use the search endpoint with required parameters
+    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=eth', {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'CryptoGuardians/1.0'
