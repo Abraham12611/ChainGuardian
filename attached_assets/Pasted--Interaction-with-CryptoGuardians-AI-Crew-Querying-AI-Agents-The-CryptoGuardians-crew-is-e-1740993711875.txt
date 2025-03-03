@@ -1,0 +1,213 @@
+## Interaction with CryptoGuardians AI Crew  
+**Querying AI Agents:** The CryptoGuardians crew is exposed via an API endpoint (often a unique URL or route for that crew). The frontend uses a method like `fetch()` or Axios to send the user’s query to this endpoint. For example, a POST request might be sent to `https://api.aixblock.io/crew/<CrewID>/query` with a JSON body like `{"query": "Give me the latest on XYZ token"}`. The crew’s response is **structured** – rather than a plain blob of text, the AI is configured to return data in a parseable format (e.g. a JSON object with fields for price, marketCap, analysis, etc.). This structured design lets the frontend easily extract specific pieces of information. In practice, AIxBlock’s multi-agent platform supports such structured outputs, allowing agents to collaborate and produce JSON-like answers that adhere to a schema. This means the UI can reliably grab fields (like `priceUsd` or `riskRating`) instead of doing fragile text parsing. It’s often achieved by instructing the AI agents to format their final answer as JSON or using AIxBlock’s tools to enforce a response schema.
+
+**Multi-Agent Coordination:** On receiving a query, the AI crew internally assigns tasks to specialized agents. AIxBlock’s infrastructure allows agents in the same crew to **communicate and share tasks**, working together to solve the query ([Ai Agent | AIxBlock: AI Productization with Privacy & Cost Efficiency](https://aixblock.io/ai-agent#:~:text=,Agent%20Infrastructure%20handle%20agent%20collaboration)). A best practice here is to use a **hierarchical coordination** – e.g. a “Lead” agent decomposes the query into sub-tasks for other agents (Price analysis, Risk assessment, etc.), then aggregates their findings into a coherent answer. This prevents agents from stepping on each other and ensures each operates in its domain expertise. For example, upon a question about a token, the Lead agent might ask the “Market Analyst” agent to fetch price and volume data, and the “Risk Analyst” agent to evaluate volatility and liquidity. The agents might use intermediate structured messages (like the Market agent returning a JSON snippet of token metrics). The Lead agent then **synthesizes** the responses – perhaps forming a summary that cites the price, 24h change, market cap, and any risk flags identified. This synthesized result is what gets returned to the frontend. By organizing agents with clear roles and a coordinator, the system ensures the multi-agent response feels like a single, cohesive answer to the user.
+
+## DexScreener API Integration  
+To empower the AI crew (and the application) with real-time trading data, the frontend (or the AI agents) will interact with the **DexScreener API**. DexScreener provides endpoints that return up-to-date token and pair information in JSON format – including price, price changes, market capitalization, liquidity, and volume. For example, DexScreener’s **pair data** endpoint `/latest/dex/pairs/{chainId}/{pairAddress}` returns a JSON object with fields like `priceUsd`, `priceChange` (often containing 1h/6h/24h percent changes), `marketCap`, liquidity, and more ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,1)) ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,)). The application can use a token’s address (and chain ID) to fetch all relevant DEX pools via `/token-pairs/v1/{chainId}/{tokenAddress}` which returns an array of pairs with similar fields ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=%5B%20%7B%20,1)) ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,)). In practice, to get *price movements* and *market cap* for a token, one might call the search endpoint or the token-pairs endpoint: for instance, querying `/latest/dex/search?q=XYZ` will return matching trading pairs with their current price and 24h price change percentage ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=%7B%20,1)) ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=%7D%2C%20,)). The **priceChange** field in the response includes keys for various intervals (e.g. `priceChange["24h"]` for 24-hour change) ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,1)), which the AI agents or frontend can interpret as recent price movement. **Market cap** is provided directly if the token’s circulating supply is known to DexScreener ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,1)). 
+
+However, DexScreener’s API does *not* provide some on-chain data like holder counts. If “holders” are required for analysis, the system would need to integrate an additional source (such as a blockchain explorer API) because DexScreener’s response schema contains no field for number of holders (it focuses on DEX trading data). The frontend should be aware of this limitation – queries about holder counts might be answered by the AI crew with a disclaimer or using another data source if integrated.
+
+**Risk Indicators:** Many risk signals can be derived from the DexScreener data. For example, **liquidity** (in USD and token amounts) and **volume** trends are part of the API response ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,)); low liquidity or sudden liquidity drops may indicate high risk of slippage or rug-pulls. The **txns** breakdown (buys vs sells count) can signal trading activity balance ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=,1)). The AI crew’s risk-analysis agent can use these fields to infer risk – e.g. if 24h price change is extremely volatile, or volume is very low, the Risk agent might flag the token as high risk. The front-end doesn’t compute this itself; instead, it relies on the AI crew’s structured response to include a “risk” field or warning message after the crew interprets the data. That said, the frontend could also choose to visualize certain raw metrics for transparency (like showing “Liquidity: $X, 24h Volume: $Y” alongside the AI’s risk assessment). 
+
+**API Request Structure:** All DexScreener endpoints are simple HTTP GET calls. For instance, to get data for a specific trading pair, the frontend (or an agent) would call:  
+
+```
+GET https://api.dexscreener.com/latest/dex/pairs/<chainId>/<pairAddress>
+```  
+
+This returns JSON data for that pair ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=curl%20)). To search by token symbol or name, the request would be:  
+
+```
+GET https://api.dexscreener.com/latest/dex/search?q=<query>
+```  
+
+DexScreener’s documentation confirms these endpoints and their outputs. No authentication token is needed for these public endpoints, but they do enforce rate limits (typically **300 requests/minute** for most data endpoints) ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=Get%20one%20or%20multiple%20pairs,limit%20300%20requests%20per%20minute)). The application should thus use these calls considerately – e.g. cache results for a short period and avoid rapid polling – to stay within limits. Caching strategies (such as storing the last fetched price for a token and only refreshing every X seconds or when the user explicitly requests) can greatly reduce redundant calls and improve performance. If the AI crew agents are calling DexScreener as part of their reasoning, those calls should similarly be rate-limited or cached on the backend. It’s often wise to have the backend (or the AI agent’s tool function) aggregate needed info in one call (for example, fetch all pair data for a token in a single `/token-pairs` request) and reuse it for both price and risk analysis, rather than calling multiple times for the same token.
+
+## Security & Authentication  
+Secure communication is paramount. All API calls (to the AIxBlock crew and to DexScreener) are made over HTTPS. For the **AIxBlock crew API**, authentication is typically required to ensure only authorized clients (your frontend app) can invoke your agents. AIxBlock likely provides an API key or token when the crew is published. This might be in the form of a Bearer token to include in an Authorization header, or the crew URL might contain a unique secret. The frontend should **never expose sensitive keys in client-side code**. A common practice is to route calls through a backend proxy or use environment variables so that the API key isn’t visible in the browser. If the AI crew is self-hosted on your own server (as AIxBlock allows ([Ai Agent | AIxBlock: AI Productization with Privacy & Cost Efficiency](https://aixblock.io/ai-agent#:~:text=,ensure%20data%20privacy%20and%20security))), you can implement your own auth (e.g. require a login session or an internal API gateway) to protect it. In a cloud scenario, using the provided token in a secure manner (HTTP header or secured route) is needed. The DexScreener API itself doesn’t require auth, but adhering to its usage terms and rate limits is a responsibility – if the app exceeds free tier usage, it might get throttled. In high-volume scenarios, implementing request **caching** and even a server-side cache (like an in-memory store to reuse recent DexScreener responses) is recommended to avoid hitting rate limits and to speed up responses.
+
+Finally, all data handling should respect user privacy and security. The AIxBlock platform emphasizes that all sensitive info (API keys for models, etc.) remain under your control ([Ai Agent | AIxBlock: AI Productization with Privacy & Cost Efficiency](https://aixblock.io/ai-agent#:~:text=,ensure%20data%20privacy%20and%20security)). This means the integration with external APIs (like DexScreener, or others) uses keys you provide and stores data on your side – aligning with best practices. Ensure that any keys (for example, if a blockchain explorer API were used for holders) are stored securely. Also validate and sanitize inputs if any user-provided fields go into API requests (to prevent injection into query parameters). By combining these measures – secure auth, prudent rate limiting, and careful key management – the frontend can safely interact with both the AI crew and DexScreener services.
+
+# Key Components – Code Snippets
+
+Below are simplified code snippets illustrating core parts of the frontend:
+
+### 1. Chat Interface Component (UI Input & Display)  
+```jsx
+// Pseudo-code for a React component
+function ChatInterface() {
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState("");
+
+  // Handle sending a new message
+  async function sendMessage() {
+    if (!userInput) return;
+    // Append the user's message to the chat
+    setMessages(prev => [...prev, { sender: "user", text: userInput }]);
+    
+    // Call the AI crew API with the query
+    const response = await queryCryptoGuardians(userInput);
+    
+    // Append the AI crew's response to the chat
+    setMessages(prev => [...prev, { sender: "ai", text: response.displayText }]);
+    setUserInput(""); // clear input
+  }
+
+  return (
+    <div className="chat-container">
+      <ul className="messages">
+        {messages.map((msg, idx) => (
+          <li key={idx} className={msg.sender}>
+            {msg.text}
+          </li>
+        ))}
+      </ul>
+      <div className="input-area">
+        <input 
+          type="text" 
+          value={userInput} 
+          onChange={e => setUserInput(e.target.value)} 
+          placeholder="Ask CryptoGuardians..." 
+        />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+    </div>
+  );
+}
+```  
+*Explanation:* This snippet sketches a chat UI component. The `messages` state holds the conversation (each message has a sender and text). The input field is bound to `userInput`. On send, we optimistically render the user’s message, then call `queryCryptoGuardians(userInput)` – a function (shown next) that hits the AI crew API. When a response is received, we append it as an AI message. In a real app, you’d also handle loading states and errors (e.g., show a typing indicator while waiting for the AI response, and catch any network errors to inform the user).
+
+### 2. Querying the CryptoGuardians AI Crew (API Call)  
+```js
+const CREW_API_URL = "https://api.aixblock.io/crew/12345/query";  // example URL
+const API_AUTH_TOKEN = "<YOUR_AUTH_TOKEN>";  // e.g., provided by AIxBlock on crew creation
+
+async function queryCryptoGuardians(question) {
+  try {
+    const res = await fetch(CREW_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${API_AUTH_TOKEN}`  // if required
+      },
+      body: JSON.stringify({ query: question })
+    });
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    const data = await res.json();
+    // Expecting structured response with fields like 'answer' and possibly sub-fields
+    console.log("Raw AI crew response:", data);
+    // Parse the structured response:
+    // For example, data may be { price: "...", marketCap: "...", risk: "...", advice: "..." }
+    const answerText = formatResponseForDisplay(data);
+    return { 
+      raw: data, 
+      displayText: answerText 
+    };
+  } catch (err) {
+    console.error("Query failed", err);
+    return { raw: null, displayText: "Sorry, I couldn't get an answer." };
+  }
+}
+```  
+*Explanation:* This function sends the user’s question to the AI crew. We POST a JSON payload and include an Authorization header with an API token if the endpoint requires it. The response is awaited and parsed as JSON. We then process the `data`. In many cases, `data` might already be the final answer text. But if the AI returns a structured object, we use a helper like `formatResponseForDisplay` to turn it into a readable string. For instance, if `data` is:  
+```json
+{ "price": "$0.05", "change": "-2.1%", "marketCap": "$10M", "risk": "High volatility", "analysis": "Token XYZ has low liquidity..." }
+```  
+the `formatResponseForDisplay` might construct a message: “**Price**: $0.05 (24h: -2.1%) – **Market Cap**: $10M – **Risk**: High volatility. Token XYZ has low liquidity... (etc.)”. We then return both the raw data (for any components that might want to use specific fields) and a combined `displayText` for the chat. The snippet also includes basic error handling: logging errors and returning a fallback message if the query fails.
+
+### 3. Parsing and Utilizing Structured AI Responses  
+If the AI crew’s response is structured (e.g., contains multiple fields or an array of agent outputs), the frontend can handle it like so:  
+```js
+function formatResponseForDisplay(data) {
+  if (!data) return "";
+  // Suppose 'data' has keys: priceUsd, priceChange, marketCap, riskAssessment, advice
+  let message = "";
+  if (data.priceUsd) {
+    message += `**Price:** ${data.priceUsd}`;
+    if (data.priceChange?.["24h"]) {
+      message += ` (24h: ${data.priceChange["24h"]}%)`;
+    }
+    message += "\n";  // newline
+  }
+  if (data.marketCap) {
+    message += `**Market Cap:** ${data.marketCap}\n`;
+  }
+  if (data.riskLevel) {
+    message += `**Risk Level:** ${data.riskLevel}\n`;
+  }
+  // Add any detailed analysis or advice text
+  if (data.analysis) {
+    message += `**Analysis:** ${data.analysis}`;
+  }
+  return message;
+}
+```  
+*Explanation:* This function takes the JSON `data` from the AI and builds a formatted string. It checks for expected fields like `priceUsd`, `priceChange["24h"]`, etc., and appends them in a human-readable format with markdown styling (bold labels, etc.). This way, the rich content from the AI (numbers and narrative) is presented cleanly to the user. In addition to composing chat text, the app could use the raw fields to render graphical elements – for example, use `data.priceUsd` to plot a point on a price chart, or color the price change red/green based on its sign.
+
+### 4. Fetching Token Data from DexScreener (for Insights or Validation)  
+```js
+// Example: Fetching token pairs from DexScreener for a given token address
+async function fetchTokenData(chainId, tokenAddress) {
+  const url = `https://api.dexscreener.com/token-pairs/v1/${chainId}/${tokenAddress}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    console.error("DexScreener API error", res.status);
+    return null;
+  }
+  const pairs = await res.json();
+  if (pairs.length === 0) return null;
+  // Use the first pair (assuming it's the main liquidity pool) for data:
+  const mainPair = pairs[0];
+  console.log("DexScreener pair data:", mainPair);
+  return {
+    price: mainPair.priceUsd,
+    change24h: mainPair.priceChange?.["24h"],
+    marketCap: mainPair.marketCap,
+    liquidity: mainPair.liquidity.usd,
+    volume24h: mainPair.volume?.["24h"]
+  };
+}
+```  
+*Explanation:* This snippet shows how the app (or an AI agent) could directly call DexScreener’s API. Given a known `chainId` (e.g. “ethereum”) and a token’s contract address, it hits the `/token-pairs/v1/` endpoint ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=curl%20,tokenAddress)), which returns all DEX pairs involving that token. We then pick a primary pair (for instance, the one with the largest liquidity) as representative. We extract key metrics: USD price, 24h price change, market cap, liquidity in USD, and 24h volume. This data can either be passed to the AI agents as context (if the AI is not calling the API itself), or used to double-check the AI’s output. In some implementations, you might integrate this function as a *tool* that the AI crew’s agents can invoke during their reasoning. For the frontend specifically, this could be used to show a quick info panel about the token even before asking the AI (for instance, on selecting a token from a list, display its current stats). Note the need to handle errors (network issues or token not found) gracefully.
+
+**Rate Limiting & Caching:** If the user might ask repeated questions about the same token, the app can cache the result from `fetchTokenData` for a short time (e.g. store it in a state or context) to avoid calling DexScreener repeatedly. This respects DexScreener’s rate limits ([Reference | DEX Screener - Docs](https://docs.dexscreener.com/api/reference#:~:text=Get%20one%20or%20multiple%20pairs,limit%20300%20requests%20per%20minute)) and speeds up the UI (subsequent queries can reuse cached data). 
+
+### 5. Bringing It Together (Coordinating AI and Data in the UI)  
+Finally, when the AI crew responds, the frontend can combine the **structured AI insights** with raw data or visual elements. For example, if the AI returns a risk level “High”, the UI might show a red shield icon next to the chat message. If a price chart component exists, the app can feed it the historical data (maybe fetched via another DexScreener endpoint or a charting API) for that token and render it below the AI’s message. The code to do this would involve state management – e.g., updating a `currentTokenStats` state with the data from `fetchTokenData` and conditionally rendering components in the JSX. Although the specifics depend on the design, the general approach is: **AI crew gives structured analysis -> frontend parses and displays text + uses numeric fields to augment the UI.**
+
+# Development Plan (Step-by-Step)
+
+**1. Define Project Scope & Roles:** Begin by clearly defining what questions the CryptoGuardians AI Crew will handle and what data is needed. Identify the specialized roles of AI agents (e.g. Price Bot, Risk Assessor, etc.) and the data endpoints required (DexScreener for market data, maybe others for supplementary info). Sketch the user interface – a chat-based query system with sections for the answer and key metrics. 
+
+**2. Set Up AIxBlock Crew:** Using AIxBlock’s multi-agent platform, create a new **Crew** for “CryptoGuardians.” Define multiple AI agents within this crew:
+   - Configure each agent’s **role and prompt** (for example, one agent’s prompt focuses on fetching price/market data, another on analyzing risk, etc.). 
+   - Add any necessary **tools or APIs** to agents. For instance, integrate a tool that allows the Price agent to call DexScreener’s API (this might involve writing a small function or using AIxBlock’s tool interface to hit an external URL). Ensure the agents know how to output their findings in a structured format (like JSON segments).
+   - Set up the **coordination logic**: if AIxBlock allows a hierarchical setup, designate one agent as the coordinator (who will call on others). Alternatively, define triggers so that when a query comes in, both data-fetch and analysis agents run, and then a synthesis step combines their outputs. This step may involve some trial and error – you’ll want the crew to produce a well-structured response consistently. Use AIxBlock’s testing console to run sample queries and verify the output structure.
+
+**3. Obtain API Access:** Once the crew is configured and published, get the API endpoint (URL) and any authentication credentials from AIxBlock. This usually involves retrieving a unique URL for your crew’s endpoint and an API key or token associated with your account or crew. Note the format of requests expected by the API (e.g. does it expect a POST with `{"query": "..."}` or some other schema?). Also note the structure of responses – ideally, design the crew such that the response JSON includes all needed fields (price, change, risk, etc.) so the frontend can easily parse it.
+
+**4. Scaffold the Frontend App:** Initialize the frontend project (e.g. using Create React App, Next.js, or your preferred framework). Set up the basic project structure with components for the chat interface. Implement a simple UI with a text input and a display area. No AI integration yet – just ensure you can input text and echo it to the screen. This is also a good time to install any needed libraries (for example, if you plan to use a charting library for visualizing price history or a UI library for styling).
+
+**5. Integrate the AI Crew API:** Implement the API call in the frontend. Using the endpoint and token from step 3, write a function to send user queries to the AI crew (as shown in the code snippets above). Connect this function to your chat interface – when the user submits a question, call the API and await the result. For now, simply display the raw response or the combined text in the chat. Test this with real queries. You might use a dummy question like “Hello” or a known token query to see that the pipeline works end-to-end (user input -> API call -> AI response -> displayed in UI). Debug any issues with CORS (ensure the AIxBlock endpoint permits your domain or use a proxy if needed) or auth (correctly include headers).
+
+**6. Parse and Format Responses:** Now that you’re getting data back, adjust the frontend to handle the structured response. If the AI crew returns JSON with multiple keys, implement parsing logic to extract those and display them nicely. For example, show a summary line with price and percentage change, perhaps in green/red color. Use subcomponents or styled elements for each piece of info (price, market cap, etc.), or embed them in the chat message as formatted text. Ensure that if the AI returns just text (in case it fails to format as JSON), the app can still show something meaningful (maybe just show that text). At this stage, you may refine the AI crew’s prompts if needed – e.g., if you notice the JSON is not well-formed or missing fields, adjust the agent instructions on AIxBlock and test again. It’s an iterative process to get the AI output reliably structured.
+
+**7. DexScreener Data Integration:** Incorporate direct DexScreener API calls if needed. There are two patterns:
+   - *Agent-driven:* The Price agent in the crew already calls DexScreener and the AI response includes the data. In this case, the frontend might not need to call DexScreener at all; it can trust the AI’s data. You might still call DexScreener on the frontend to verify or if you want to show extra info (like a list of exchanges or a chart).
+   - *Frontend-driven:* Alternatively, perform the DexScreener call in the frontend upon certain events. For instance, after getting the AI’s response for token XYZ, you could call DexScreener’s API to fetch more detailed info (maybe historical prices or additional pair data) and display it. Implement the necessary function (similar to `fetchTokenData` above) and test it with a known token address. Check that you respect rate limits – e.g., if a user asks multiple times, you don’t refetch the same data too frequently. Implement a simple caching (even a JavaScript object memoization or React state) to store recent results.
+
+**8. Multi-Agent Response Synthesis:** Ensure the final user-visible response is coherent. Sometimes multiple agents might return separate chunks of text. Decide whether the frontend should show each agent’s answer (probably not, to avoid user confusion) or just the synthesized result. Ideally, the crew coordinator already merges answers. If not, you may do a bit of merging on the frontend. For example, if the AI returns an array of agent outputs, you can iterate and concatenate them into one message or format them into sections. This step is about polishing the output: adding labels like “**Risk Analysis:** …” before the risk agent’s text, etc., so the user understands the information. Once satisfied, do a round of testing with various questions: ask about different tokens, ask general market questions, even ask something outside the intended scope to see how the system handles it. Fine-tune agent prompts or frontend parsing as needed based on these tests.
+
+**9. Implement UI Enhancements:** Now that the core functionality works, improve the user experience. This can include:
+   - Adding loading indicators when a query is sent (so the user knows the system is thinking).
+   - Clearing or managing the chat history (maybe offer a “Clear chat” button).
+   - If applicable, allow the user to select a token from a list or their portfolio, and pre-populate the question or directly show data (this can leverage DexScreener without a query).
+   - Show timestamps for messages, and perhaps source attributions (e.g. “Data from DexScreener” note) if desired.
+   - Ensuring the interface is responsive and mobile-friendly.
+
+**10. Performance Optimization:** As a final development step, address performance. This includes making sure that the DexScreener calls are not slowing down the AI response. If the AI call is slow (LLMs can take a few seconds), consider streaming the response (if AIxBlock supports it) so the user sees partial answer output in real-time. Implement caching on the frontend for any data that’s reused. Also, handle any potential memory or state issues (for instance, if the chat gets very long, you might limit how many messages are kept or use pagination for older messages). Since the AI crew is doing heavy computation elsewhere, the frontend mainly needs to ensure smooth rendering and minimal unnecessary re-renders.
+
+**11. Security Review & Deployment:** Before launching, review that no sensitive information is exposed. Remove any console logs that show API keys or user data. Ensure all calls are HTTPS. If using a backend proxy for the AI calls, ensure that is secured (properly restrict origins, etc.). Then deploy the application (e.g. to Vercel, Netlify, or your own server). Monitor the usage initially – watch for any spikes that might hit DexScreener’s limits or any errors coming from the AI crew API. It’s good to implement some basic logging or analytics (even just in the browser console or a log service) to catch errors in the wild. 
+
+By following this plan, you’ll incrementally build the frontend application, integrate it with the AIxBlock multi-agent crew and DexScreener, and refine it into a robust tool for crypto insights.
