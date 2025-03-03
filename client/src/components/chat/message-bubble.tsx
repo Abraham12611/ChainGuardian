@@ -20,12 +20,12 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   const metadata = message.metadata as MessageMetadata;
 
   return (
-    <div className={`flex ${isAI ? "justify-start" : "justify-end"}`}>
+    <div className={`flex ${isAI ? "justify-start" : "justify-end"} w-full`}>
       <div className={`
-        max-w-[80%] rounded-lg p-3
+        w-full rounded-lg p-3
         ${isAI ? "bg-secondary" : "bg-primary text-primary-foreground"}
       `}>
-        <div className="text-sm">{message.content}</div>
+        <div className="text-sm mb-3">{message.content}</div>
 
         {isAI && metadata?.tokenData && (
           <div className="mt-3">
@@ -51,7 +51,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {isAI && metadata?.tokenList && (
-          <div className="mt-3">
+          <div className="mt-3 w-full">
             <TokenList tokens={metadata.tokenList} />
           </div>
         )}
