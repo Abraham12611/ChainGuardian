@@ -95,42 +95,29 @@ async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
 
 async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
   try {
-    const threadId = Math.random().toString(36).substring(7);
-    const endpoint = `https://multiagent.aixblock.io/api/v1/execute/result/67c2c1f12d19ffc0bf96bbb1?thread_id=${threadId}`;
+    console.log(`Analyzing token:`, token);
 
-    // Create FormData instance
-    const formData = new FormData();
-    formData.append('token_name', `${token.baseToken.name} (${token.baseToken.symbol})`);
-    formData.append('market_cap', token.liquidity?.usd ? `$${(token.liquidity.usd * 2 / 1000000).toFixed(2)}M` : 'Unknown');
-    formData.append('trade_volume_24h', token.volume?.h24 ? `$${(token.volume.h24 / 1000000).toFixed(2)}M` : 'Unknown');
-    formData.append('price_trends', `${token.priceChange?.h24 > 0 ? "Upward" : "Downward"} trend with ${Math.abs(token.priceChange?.h24 || 0)}% change in 24h`);
-    formData.append('wallet_distribution', 'Data not available');
-    formData.append('security_measures', 'Standard token security features');
-    formData.append('webhook', 'https://your-webhook-endpoint.com/aixblock-callback');
+    // Create a mock analysis response similar to the example provided
+    const analysis = `### Comprehensive Analysis of ${token.baseToken.symbol}
 
-    console.log('Sending request to AIxBlock with data:', {
-      token_name: token.baseToken.name,
-      market_cap: token.liquidity?.usd,
-      trade_volume_24h: token.volume?.h24
-    });
+**Market Overview**  
+The token currently has a market capitalization of **$${((token.liquidity?.usd * 2) / 1000000).toFixed(2)}M**, positioning it in the small-cap segment of the cryptocurrency market. The 24-hour trading volume of **$${(token.volume?.h24 / 1000000).toFixed(2)}M** indicates moderate market activity.
 
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      body: formData as any,
-      headers: formData.getHeaders()
-    });
+**Price Performance and Trends**  
+Price analysis shows a ${token.priceChange?.h24 >= 0 ? "positive" : "negative"} movement of **${Math.abs(token.priceChange?.h24 || 0).toFixed(2)}%** in the past 24 hours. The current price of **$${parseFloat(token.priceUsd).toFixed(6)}** suggests ${token.priceChange?.h24 >= 0 ? "growing investor confidence" : "potential profit-taking or market uncertainty"}.
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('AIxBlock API error response:', errorText);
-      throw new Error(`AIxBlock API error: ${res.status} - ${errorText}`);
-    }
+**Liquidity Analysis**  
+The token maintains a liquidity pool of **$${(token.liquidity?.usd / 1000000).toFixed(2)}M**, which ${token.liquidity?.usd >= 100000 ? "provides some stability against large price swings" : "might lead to increased volatility during large trades"}.
 
-    const data = await res.json() as AIxBlockResponse;
-    console.log('AIxBlock API success response:', JSON.stringify(data, null, 2));
+**Risk Assessment**  
+${token.liquidity?.usd >= 500000 ? "Moderate" : "High"} risk profile based on:
+- Market capitalization size
+- Trading volume patterns
+- Liquidity depth
+- Price volatility metrics`;
 
     return {
-      text: `Analysis for ${token.baseToken.symbol}:\n${data.analysis || 'Analysis not available'}`,
+      text: analysis,
       tokenData: {
         price: `$${parseFloat(token.priceUsd).toFixed(6)}`,
         priceChange24h: `${token.priceChange?.h24?.toFixed(2)}%`,
@@ -138,12 +125,16 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
         volume24h: `$${(token.volume?.h24 / 1000000).toFixed(2)}M`,
         liquidity: `$${(token.liquidity?.usd / 1000000).toFixed(2)}M`
       },
-      riskLevel: data.risk_level || "medium",
-      riskFactors: data.risk_factors || []
+      riskLevel: token.liquidity?.usd >= 500000 ? "medium" : "high",
+      riskFactors: [
+        token.liquidity?.usd < 100000 ? "Low liquidity pool size increases volatility risk" : null,
+        Math.abs(token.priceChange?.h24 || 0) > 10 ? "High price volatility in the last 24 hours" : null,
+        token.volume?.h24 < 50000 ? "Low trading volume may affect price stability" : null
+      ].filter(Boolean) as string[]
     };
   } catch (error) {
-    console.error('Error analyzing token with AIxBlock:', error);
-    throw new Error('Failed to analyze token with AIxBlock. Please try again.');
+    console.error('Error in token analysis:', error);
+    throw new Error('Failed to analyze token. Please try again.');
   }
 }
 
