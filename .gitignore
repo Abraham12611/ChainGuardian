@@ -6,3 +6,4 @@ vite.config.ts.*
 *.tar.gz
 instructions/build.md
 instructions/
+attached_assets/

@@ -27,6 +27,8 @@ interface DexScreenerToken {
 interface AIxBlockResponse {
   analysis: string;
   recommendations?: string[];
+  risk_level?: string;
+  risk_factors?: string[];
 }
 
 async function fetchTopTokens(type: "gainers" | "losers", limit = 10) {
@@ -95,39 +97,41 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
     const threadId = Math.random().toString(36).substring(7);
     const endpoint = `https://multiagent.aixblock.io/api/v1/execute/result/67c2c1f12d19ffc0bf96bbb1?thread_id=${threadId}`;
 
-    const payload = {
-      token_name: `${token.baseToken.name} (${token.baseToken.symbol})`,
-      market_cap: token.marketCap ? token.marketCap.toString() : "Unknown",
-      trade_volume_24h: token.volume?.h24?.toString() || "Unknown",
-      price_trends: `${token.priceChange?.h24 > 0 ? "Upward" : "Downward"} trend with ${Math.abs(token.priceChange?.h24 || 0)}% change in 24h`,
-      wallet_distribution: "Data not available",
-      security_measures: "Standard token security features",
-      webhook: "https://your-webhook-endpoint.com/aixblock-callback"
-    };
+    // Create FormData object
+    const formData = new FormData();
+    formData.append('token_name', `${token.baseToken.name} (${token.baseToken.symbol})`);
+    formData.append('market_cap', token.liquidity?.usd ? `$${(token.liquidity.usd * 2 / 1000000).toFixed(2)}M` : 'Unknown');
+    formData.append('trade_volume_24h', token.volume?.h24 ? `$${(token.volume.h24 / 1000000).toFixed(2)}M` : 'Unknown');
+    formData.append('price_trends', `${token.priceChange?.h24 > 0 ? "Upward" : "Downward"} trend with ${Math.abs(token.priceChange?.h24 || 0)}% change in 24h`);
+    formData.append('wallet_distribution', 'Data not available');
+    formData.append('security_measures', 'Standard token security features');
+    formData.append('webhook', 'https://your-webhook-endpoint.com/aixblock-callback');
 
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(payload)
+      body: formData
     });
 
     if (!res.ok) {
-      throw new Error(`AIxBlock API error: ${res.status}`);
+      const errorText = await res.text();
+      console.error('AIxBlock API error response:', errorText);
+      throw new Error(`AIxBlock API error: ${res.status} - ${errorText}`);
     }
 
     const data = await res.json();
+    console.log('AIxBlock API success response:', JSON.stringify(data, null, 2));
+
     return {
       text: `Analysis for ${token.baseToken.symbol}:\n${data.analysis || 'Analysis not available'}`,
       tokenData: {
-        price: token.priceUsd,
+        price: `$${parseFloat(token.priceUsd).toFixed(6)}`,
         priceChange24h: `${token.priceChange?.h24?.toFixed(2)}%`,
-        marketCap: token.marketCap?.toString() || 'Unknown',
-        volume24h: token.volume?.h24?.toString() || 'Unknown',
-        liquidity: token.liquidity?.usd?.toString() || 'Unknown'
-      }
+        marketCap: `$${((token.liquidity?.usd * 2) / 1000000).toFixed(2)}M`,
+        volume24h: `$${(token.volume?.h24 / 1000000).toFixed(2)}M`,
+        liquidity: `$${(token.liquidity?.usd / 1000000).toFixed(2)}M`
+      },
+      riskLevel: data.risk_level || "medium",
+      riskFactors: data.risk_factors || []
     };
   } catch (error) {
     console.error('Error analyzing token with AIxBlock:', error);
@@ -135,7 +139,7 @@ async function analyzeTokenWithAIxBlock(token: DexScreenerToken) {
   }
 }
 
-let lastFetchedPairs: DexScreenerToken[] | undefined; // Add global variable
+let lastFetchedPairs: DexScreenerToken[] | undefined;
 
 async function queryCryptoGuardians(query: string) {
   try {
