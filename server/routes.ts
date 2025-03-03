@@ -27,7 +27,7 @@ interface DexScreenerToken {
 async function fetchTopTokens(type: 'gainers' | 'losers', limit = 10) {
   try {
     // Use the correct endpoint and add some default parameters
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=USDT', {
+    const res = await fetch('https://api.dexscreener.com/latest/dex/search', {
       headers: {
         'Accept': 'application/json'
       }
